@@ -1,85 +1,56 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Net.Sockets;
+using System.Net;
+using System.Net.WebSockets;
+using System.Text;
 
 namespace ServerCore
 
 {
-    class UserManager
-    {
-        static object _lock = new object();
 
-        public static void Test()
-        {
-            lock (_lock)
-            {
-                SessionManager.TestSession();
-            }
-        }
-
-        public static void TestUser()
-        {
-            lock (_lock)
-            {
-                
-            }
-        }
-    }
-
-    public class SessionManager
-    {
-        static object _lock = new object();
-
-        public static void TestSession()
-        {
-            lock (_lock)
-            {
-                
-            }
-        }
-
-        public static void Test()
-        {
-            lock (_lock)
-            {
-                UserManager.TestUser();
-            }
-        }
-    }
 
     class Program
     {
-        static volatile int number = 0;
-        static object _obj = new object();
-
-        static void Thread_1()
+        static Listener _listener = new Listener();
+        
+        static void OnAcceptHandler(Socket clientSocket)
         {
-            for (int i = 0; i < 10000; i++)
+            try
             {
-                SessionManager.Test();
+                Session session = new Session();
+                session.Start(clientSocket);
+                // Send
+                byte[] sendBuff = Encoding.UTF8.GetBytes("Welcome to MMORPG Server!");
+                session.Send(sendBuff);
+
+                Thread.Sleep(1000);
+
+                session.Disconnect();
+            }
+
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
             }
         }
-
-        static void Thread_2()
-        {
-            for (int i = 0; i < 10000; i++)
-            {
-                UserManager.Test();
-            }
-        }
- 
+        
         static void Main(string[] args)
         {
-            Task t1 = new Task(Thread_1); 
-            Task t2 = new Task(Thread_2);
-            t1.Start();
-            Thread.Sleep(100); // Ensure t1 starts first
-            t2.Start();
+            string host = Dns.GetHostName();
+            IPHostEntry ipHost = Dns.GetHostEntry(host);
+            IPAddress ipAddr = ipHost.AddressList[0];
+            IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
+ 
+            _listener.Init(endPoint, OnAcceptHandler);
+            Console.WriteLine("Listening...");
 
-            Task.WaitAll(t1, t2); // Wait for both threads to finish
+            while (true)
+            {   
+                ;
+            }
 
-            
-            Console.WriteLine($"{number}");
         }
     }
 }
