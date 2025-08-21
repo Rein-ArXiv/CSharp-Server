@@ -11,6 +11,8 @@ class Program
 
     static void Main(string[] args)
     {
+        PacketManager.Instance.Register();
+
         string host = Dns.GetHostName();
         IPHostEntry ipHost = Dns.GetHostEntry(host);
         IPAddress ipAddr = ipHost.AddressList[0];
