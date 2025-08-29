@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ServerCore
 {
@@ -15,6 +10,7 @@ namespace ServerCore
         {
             // [size(2)] [packetId(2)] [ data(n) ] 
             int processLen = 0;
+            int packetCount = 0;
 
             while (true)
             {
@@ -32,20 +28,26 @@ namespace ServerCore
                 }
 
                 OnRecvPacket(new ArraySegment<byte>(buffer.Array, buffer.Offset, dataSize));
+                packetCount++;
 
                 processLen += dataSize;
                 buffer = new ArraySegment<byte>(buffer.Array, buffer.Offset + dataSize, buffer.Count - dataSize);
             }
+
+            if (packetCount > 1)
+                Console.WriteLine($"[PacketSession] OnRecv: {packetCount} packets");
+
             return processLen;
         }
 
         public abstract void OnRecvPacket(ArraySegment<byte> buffer);
     }
+
     public abstract class Session
     {
         Socket _socket;
         int _disconnected = 0;
-        RecvBuffer _recvBuffer = new RecvBuffer(1024); // 1024byte 버퍼
+        RecvBuffer _recvBuffer = new RecvBuffer(65535); // 65535byte 버퍼
 
         object _lock = new object();
         Queue<ArraySegment<byte>> _sendQueue = new Queue<ArraySegment<byte>>();
@@ -75,11 +77,18 @@ namespace ServerCore
             RegisterRecv(_recvArgs);
         }
 
-        public void Send(ArraySegment<byte> sendBuff)
+        public void Send(List<ArraySegment<byte>> sendBuffList)
         {
+            if (sendBuffList == null || sendBuffList.Count == 0)
+                return;
+
             lock (_lock)
             {
-                _sendQueue.Enqueue(sendBuff);
+                foreach (ArraySegment<byte> sendBuff in sendBuffList)
+                {
+                    _sendQueue.Enqueue(sendBuff);
+                }
+                
                 if (_pendingList.Count == 0)
                 {
                     RegisterSend();
@@ -96,6 +105,7 @@ namespace ServerCore
             OnDisconnected(_socket.RemoteEndPoint);
             _socket.Shutdown(SocketShutdown.Both);
             _socket.Close();
+            Clear();
         }
 
         #region 네트워크 통신
@@ -150,7 +160,7 @@ namespace ServerCore
                         Console.WriteLine($"OnSendCompleted Failed {e}");
                     }
                 }
-                if (args.SocketError != SocketError.Success)
+                else 
                 {
                     Console.WriteLine($"OnSendCompleted Failed {args.SocketError}");
                     Disconnect();
@@ -216,7 +226,6 @@ namespace ServerCore
                 {
                     Console.WriteLine($"OnRecvCompleted Failed {e}");
                 }
-                
             }
             else
             {

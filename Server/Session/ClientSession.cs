@@ -10,13 +10,15 @@ namespace Server
 {
     class ClientSession : PacketSession
     {
+        public int SessionId { get; set; } // Unique session ID for the client
+        public GameRoom Room { get; set; }
         public override void OnConnected(EndPoint endPoint)
         {
             Console.WriteLine($"Client connected: {endPoint}");
 
             try
             {
-                
+                Program.Room.Push(() => Program.Room.Enter(this));
             }
             catch (Exception e)
             {
@@ -34,6 +36,13 @@ namespace Server
         }
         public override void OnDisconnected(EndPoint endPoint)
         {
+            SessionManager.Instance.Remove(this);
+            if (Room != null)
+            {
+                GameRoom room = Room;
+                room.Push(() => room.Leave(this));
+                Room = null;
+            }
             Console.WriteLine($"OnDisconnected: {endPoint}");
         }
     }

@@ -13,14 +13,17 @@ namespace DummyClient
         {
             string host = Dns.GetHostName();
             IPHostEntry ipHost = Dns.GetHostEntry(host);
+            //Console.WriteLine(ipHost.ToString());
             IPAddress ipAddr = ipHost.AddressList[0];
-            IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
+            //Console.WriteLine(ipAddr.ToString());
+
+            IPEndPoint endPoint = new IPEndPoint(ipAddr, 8888);
 
             Connector connector = new Connector();
 
             try
             {
-                connector.Connect(endPoint, () => { return new ServerSession(); });
+                connector.Connect(endPoint, () => { return SessionManager.Instance.Generate(); }, 500);
             }
             catch (Exception e)
             {
@@ -29,8 +32,16 @@ namespace DummyClient
             }
 
             while (true)
-            {
-                
+            {   
+                try
+                {
+                    SessionManager.Instance.SendForEach();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Error during send: {e.Message}");
+                }
+                Thread.Sleep(250);
             }
         }
     }

@@ -10,11 +10,10 @@ namespace ServerCore
     {
         public static ThreadLocal<SendBuffer> CurrentBuffer = new ThreadLocal<SendBuffer>(() =>
         {
-
             return null;
         });
 
-        public static int ChunkSize { get; set; } = 4096 * 100;
+        public static int ChunkSize { get; set; } = 65535 * 100;
         public static ArraySegment<byte> Open(int reserveSize)
         {
             if (CurrentBuffer.Value == null)
@@ -61,7 +60,8 @@ namespace ServerCore
         {
             ArraySegment<byte> segment = new ArraySegment<byte>(_buffer, _usedSize, usedSize);
             _usedSize += usedSize;
-            return new ArraySegment<byte>(_buffer, _usedSize - usedSize, usedSize);
+            return segment;
+            //return new ArraySegment<byte>(_buffer, _usedSize - usedSize, usedSize);
         }
     }
 }
